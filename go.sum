@@ -1,0 +1,4 @@
+github.com/gin-gonic/gin v1.7.2 h1:KtY7C1Iox0/UhxYqemNQUXcJJtboHC5TfZCj8g95bFE=
+github.com/gin-gonic/gin v1.7.2/go.mod h1:PLUOknOcKgy9Nk5/RoUGMjVBDst+2N2lMeIgK/X2Rqw=
+github.com/globalsign/mgo v1.5.4 h1:HLbnDov0X+P/XM9hTuMBIXlbJAgFy5ht2BYrML7EXls=
+github.com/globalsign/mgo v1.5.4/go.mod h1:rFxtOMbJp7xLPpYHfNJexz2Ewp9HlXQzodUMsb1b0j0=

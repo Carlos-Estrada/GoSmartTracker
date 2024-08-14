@@ -14,28 +14,28 @@ func main() {
 		log.Println("No .env file found")
 	}
 
-	port := os.Getenv("PORT")
-	if port == "" {
+	serverPort := os.Getenv("PORT")
+	if serverPort == "" {
 		log.Fatal("$PORT must be set")
 	}
 
-	router := gin.Default()
+	apiRouter := gin.Default()
 
-	router.GET("/status", getStatus)
-	router.POST("/create", createItem)
-	router.GET("/items", getItems)
+	apiRouter.GET("/status", respondServerStatus)
+	apiRouter.POST("/create", createTrackingItem)
+	apiRouter.GET("/items", listTrackingItems)
 
-	router.Run(":" + port)
+	apiRouter.Run(":" + serverPort)
 }
 
-func getStatus(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"status": "up"})
+func respondServerStatus(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, gin.H{"status": "up"})
 }
 
-func createItem(c *gin.Context) {
-	c.JSON(http.StatusCreated, gin.H{"message": "Item created"})
+func createTrackingItem(ctx *gin.Context) {
+	ctx.JSON(http.StatusCreated, gin.H{"message": "Tracking item created"})
 }
 
-func getItems(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"items": []string{"item1", "item2"}})
+func listTrackingItems(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, gin.H{"items": []string{"item1", "item2"}})
 }

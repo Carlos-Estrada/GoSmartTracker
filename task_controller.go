@@ -25,7 +25,7 @@ var tasks = []Task{
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatalf("Error loading .env file: %s", err)
 	}
 
 	router := mux.NewRouter()
@@ -38,12 +38,17 @@ func main() {
 	}
 
 	fmt.Printf("Server listening on port %s\n", port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), router))
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), router); err != nil {
+		log.Fatalf("Failed to start server: %s", err)
+	}
 }
 
 func getTasks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tasks)
+	if err := json.NewEncoder(w).Encode(tasks); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Failed to encode tasks", http.StatusInternalServerError)
+	}
 }
 
 func createTask(w http.ResponseWriter, r *http.Request) {
@@ -51,10 +56,14 @@ func createTask(w http.ResponseWriter, r *http.Request) {
 	var newTask Task
 	err := json.NewDecoder(r.Body).Decode(&newTask)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Printf("Error decoding request body: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 	newTask.ID = fmt.Sprintf("%d", len(tasks)+1)
 	tasks = append(tasks, newTask)
-	json.NewEncoder(w).Encode(newTask)
+	if err := json.NewEncoder(w).Encode(newTask); err != nil {
+		log.Printf("Error encoding task: %v", err)
+		http.Error(w, "Failed to encode task", http.StatusInternalServerError)
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -17,23 +18,36 @@ type User struct {
 	Password string `json:"password,omitempty"`
 }
 
-var Users []User
+var Users = struct {
+	sync.Mutex
+	M map[string]User
+}{M: make(map[string]User)}
 
 func init() {
 	err := godotenv.Load()
 	if err != nil {
 		fmt.Println("Error loading .env file")
 	}
+	bcryptCost := getBcryptCost()
 
-	Users = append(Users, User{ID: 1, Username: "John Doe", Password: hashPassword("password")})
+	password, _ := hashPassword("password", bcryptCost)
+	Users.M["JohnDoe"] = User{ID: 1, Username: "John Doe", Password: password}
 }
 
-func hashPassword(password string) string {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+func getBcryptCost() int{
+	bcCost, err := strconv.Atoi(os.Getenv("BCRYPT_COST"))
+	if err != nil || bcCost < 4 || bcCost > 31 {
+		return 14
+	} 
+	return bcCost
+}
+
+func hashPassword(password string, cost int) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), cost)
 	if err != nil {
-		fmt.Println(err)
+		return "", err
 	}
-	return string(bytes)
+	return string(bytes), nil
 }
 
 func checkPasswordHash(password, hash string) bool {
@@ -48,10 +62,26 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user.Password = hashPassword(user.Password)
-	Users = append(Users, user)
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode("User created")
+
+	bcryptCost := getBcryptCost()
+
+	user.Password, err = hashPassword(user.Password, bcryptCost)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	Users.Lock()
+	_, exists := Users.M[user.Username]
+	if !exists {
+		Users.M[user.Username] = user
+		Users.Unlock()
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode("User created")
+	} else {
+		Users.Unlock()
+		http.Error(w, "Username already exists", http.StatusBadRequest)
+	}
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -61,11 +91,12 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	for _, user := range Users {
-		if user.Username == credentials.Username && checkPasswordHash(credentials.Password, user.Password) {
-			json.NewEncoder(w).Encode("Logged In Successfully")
-			return
-		}
+	Users.Lock()
+	user, exists := Users.M[credentials.Username]
+	Users.Unlock()
+	if exists && checkPasswordHash(credentials.Password, user.Password) {
+		json.NewEncoder(w).Encode("Logged In Successfully")
+		return
 	}
 	http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 }

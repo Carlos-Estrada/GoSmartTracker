@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 
 	"github.com/gorilla/mux"
@@ -18,82 +19,72 @@ type User struct {
 	Password string `json:"password,omitempty"`
 }
 
-var Users = struct {
+var users = struct {
 	sync.Mutex
-	M map[string]User
-}{M: make(map[string]User)}
+	m map[string]User
+}{m: make(map[string]User)}
 
 func init() {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		fmt.Println("Error loading .env file")
 	}
-	bcryptCost := getBcryptCost()
 
-	password, _ := hashPassword("password", bcryptCost)
-	Users.M["JohnDoe"] = User{ID: 1, Username: "John Doe", Password: password}
+	defaultUser := User{ID: 1, Username: "John Doe"}
+	defaultUser.Password, _ = hashPassword("password", getBcryptCost())
+	users.m[defaultUser.Username] = defaultUser
 }
 
-func getBcryptCost() int{
+func getBcryptCost() int {
 	bcCost, err := strconv.Atoi(os.Getenv("BCRYPT_COST"))
-	if err != nil || bcCost < 4 || bcCost > 31 {
-		return 14
-	} 
+	if err != nil || bcCost < bcrypt.MinCost || bcCost > bcrypt.MaxCost {
+		return bcrypt.DefaultCost
+	}
 	return bcCost
 }
 
 func hashPassword(password string, cost int) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), cost)
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
+	return string(bytes), err
 }
 
 func checkPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
 
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	var user User
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	bcryptCost := getBcryptCost()
-
-	user.Password, err = hashPassword(user.Password, bcryptCost)
+	user.Password, err := hashPassword(user.Password, getBcryptCost())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	Users.Lock()
-	_, exists := Users.M[user.Username]
-	if !exists {
-		Users.M[user.Username] = user
-		Users.Unlock()
+	users.Lock()
+	defer users.Unlock()
+	if _, exists := users.m[user.Username]; !exists {
+		users.m[user.Username] = user
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode("User created")
 	} else {
-		Users.Unlock()
 		http.Error(w, "Username already exists", http.StatusBadRequest)
 	}
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	var credentials User
-	err := json.NewDecoder(r.Body).Decode(&credentials)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	Users.Lock()
-	user, exists := Users.M[credentials.Username]
-	Users.Unlock()
+
+	users.Lock()
+	user, exists := users.m[credentials.Username]
+	users.Unlock()
 	if exists && checkPasswordHash(credentials.Password, user.Password) {
 		json.NewEncoder(w).Encode("Logged In Successfully")
 		return
@@ -103,7 +94,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	router := mux.NewRouter()
-	
+
 	router.HandleFunc("/register", registerHandler).Methods("POST")
 	router.HandleFunc("/login", loginHandler).Methods("POST")
 

@@ -5,24 +5,24 @@ import (
 )
 
 type User struct {
-	ID        uint   `json:"id"`
-	Username  string `json:"username"`
-	Password  string `json:"password"`
-	Email     string `json:"email"`
+	ID       uint   `json:"id"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Email    string `json:"email"`
 }
 
 type Product struct {
-	ID          uint   `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	ID          uint    `json:"id"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
 	Price       float64 `json:"price"`
 }
 
 type Order struct {
-	ID        uint    `json:"id"`
-	UserID    uint    `json:"user_id"`
-	ProductID uint    `json:"product_id"`
-	Quantity  int     `json:"quantity"`
+	ID        uint `json:"id"`
+	UserID    uint `json:"user_id"`
+	ProductID uint `json:"product_id"`
+	Quantity  int  `json:"quantity"`
 }
 
 func LoadEnvironmentVariables() {
@@ -32,13 +32,19 @@ func LoadEnvironmentVariables() {
 	os.Setenv("DB_NAME", "myapp")
 }
 
+func FetchEnvVars() (dbHost, dbUser, dbPassword, dbName string) {
+	dbHost = os.Getenv("DB_HOST")
+	dbUser = os.Getenv("DB_USER")
+	dbPassword = os.Getenv("DB_PASSWORD")
+	dbName = os.Getenv("DB_NAME")
+
+	return
+}
+
 func main() {
 	LoadEnvironmentVariables()
 
-	dbHost := os.Getenv("DB_HOST")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
+	dbHost, dbUser, dbPassword, dbName := FetchEnvVars()
 
 	_ = dbHost
 	_ = dbUser

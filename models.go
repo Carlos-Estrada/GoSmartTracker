@@ -25,27 +25,17 @@ type Order struct {
 	Quantity  int  `json:"quantity"`
 }
 
-func LoadEnvironmentVariables() {
+func main() {
+	// Directly setting environment variables when the program starts
 	os.Setenv("DB_HOST", "localhost")
 	os.Setenv("DB_USER", "user")
 	os.Setenv("DB_PASSWORD", "password")
 	os.Setenv("DB_NAME", "myapp")
-}
 
-func FetchEnvVars() (dbHost, dbUser, dbPassword, dbName string) {
-	dbHost = os.Getenv("DB_HOST")
-	dbUser = os.Getenv("DB_USER")
-	dbPassword = os.Getenv("DB_PASSWORD")
-	dbName = os.Getenv("DB_NAME")
+	// Fetching environment variables
+	dbHost, dbUser, dbPassword, dbName := os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME")
 
-	return
-}
-
-func main() {
-	LoadEnvironmentVariables()
-
-	dbHost, dbUser, dbPassword, dbName := FetchEnvVars()
-
+	// Placeholder for using DB connection information
 	_ = dbHost
 	_ = dbUser
 	_ = dbPassword

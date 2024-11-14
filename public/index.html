@@ -6,9 +6,28 @@
     <title>Frontend Application Entry Point</title>
 </head>
 <body>
+    <ul id="navbar">
+        <li><a href="#" onclick="loadHomePage()">Home</a></li>
+        <li><a href="#" onclick="loadAuthorPage()">Author</a></li>
+    </ul>
+
     <div id="app"></div>
+    
     <script>
         const API_BASE_URL = "YOUR_API_BASE_URL_HERE";
+
+        function loadHomePage() {
+            const appDiv = document.getElementById('app');
+            appDiv.innerHTML = '<h1>Homepage Content Here</h1>';
+        }
+
+        function loadAuthorPage() {
+            const appDiv = document.getElementById('app');
+            appDiv.innerHTML = `
+                <h1>Author Page</h1>
+                <p>Name: John Doe</p>
+                <p>Bio: Here goes the bio of the author...</p>`;
+        }
     </script>
     <script src="path/to/main.js"></script>
 </body>

@@ -43,6 +43,13 @@ func init() {
 	}
 
 	usersCollection = client.Database("testdb").Collection("users")
+
+	logMessage("MongoDB connection established")
+}
+
+func logMessage(message string) {
+	// Customize this function as needed for more advanced logging features
+	log.Println(message)
 }
 
 func hashPassword(password string) (string, error) {
@@ -76,6 +83,8 @@ func register(c *gin.Context) {
 		return
 	}
 
+	logMessage(fmt.Sprintf("User registered: %s", newUser.Username))
+
 	c.JSON(201, gin.H{"message": "User created"})
 }
 
@@ -96,6 +105,8 @@ func login(c *gin.Context) {
 		c.JSON(401, gin.H{"error": "Invalid password"})
 		return
 	}
+
+	logMessage(fmt.Sprintf("User logged in: %s", loginUser.Username))
 
 	c.JSON(200, gin.H{"message": "Login successful"})
 }
